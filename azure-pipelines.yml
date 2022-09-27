@@ -3,8 +3,8 @@ trigger:
 
 variables:
   dockerRegistryServiceConnection: 'ACR'
-  imageRepository: 'shiny-front'
-  containerRegistry: 'anmereugo33.azurecr.io'
+  imageRepository: 'shiny-app'
+  containerRegistry: '{{ azureServiceConnectionId }}'
   dockerfilePath: '**/Dockerfile'
   tag: '$(Build.BuildId)'
   imagePullSecret: 'csacr5d93-auth'
@@ -62,7 +62,7 @@ stages:
             inputs:
               action: deploy
               manifests: |
-                $(Pipeline.Workspace)/manifests/vote.yml
+                $(Pipeline.Workspace)/manifests/shiny_app.yml
               imagePullSecrets: |
                 $(imagePullSecret)
               containers: |
