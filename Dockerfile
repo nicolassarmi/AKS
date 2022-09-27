@@ -1,29 +1,36 @@
-# Instalar servidor de shiny con rocker
-FROM rocker/shiny-verse:3.5.0
+# Base image https://hub.docker.com/u/rocker/
+FROM rocker/shiny:latest
 
-RUN apt-get update && apt-get install libcurl4-openssl-dev libv8-3.14-dev -y &&\
-  mkdir -p /var/lib/shiny-server/bookmarks/shiny
+# system libraries of general use
+## install debian packages
+RUN apt-get update -qq && apt-get -y --no-install-recommends install \
+    libxml2-dev \
+    libcairo2-dev \
+    libsqlite3-dev \
+    libmariadbd-dev \
+    libpq-dev \
+    libssh2-1-dev \
+    unixodbc-dev \
+    libcurl4-openssl-dev \
+    libssl-dev
 
-# Bajar e instalar las librerías de R
-RUN R -e "install.packages(c('shinythemes', 'DT', 'shinydashboard', 'shinyjs', 'V8', 'ggrepel'))"
+## update system libraries
+RUN apt-get update && \
+    apt-get upgrade -y && \
+    apt-get clean
 
-# Copiar la app a la imagen
+# copy necessary files
+## renv.lock file
+COPY /example-app/renv.lock ./renv.lock
+## app folder
+COPY /example-app ./app
 
-COPY . /srv/shiny-server/
+# install renv & restore packages
+RUN Rscript -e 'install.packages("renv")'
+RUN Rscript -e 'renv::restore()'
 
-# Copiar configuración del servidor shiny
-#COPY shiny-server.conf  /etc/shiny-server/shiny-server.conf
-
-# Hacer todas las apps leíbles (solves issue when dev in Windows, but building in Ubuntu)
-RUN chmod -R 755 /srv/shiny-server/
-
-
-# Indicar el puerto disponible para shiny
+# expose port
 EXPOSE 3838
 
-# Copiar donde poner los logfiles
-COPY shiny-server.sh /usr/bin/shiny-server.sh
-
-# Correr la aplicación
-#CMD ["/usr/bin/shiny-server.sh"] 
-CMD ["chmod", "+x", "/usr/bin/shiny-server.sh"]
+# run app on container start
+CMD ["R", "-e", "shiny::runApp('/app', host = '0.0.0.0', port = 3838)"]
